@@ -1,0 +1,31 @@
+# Ignore environment variables
+.env
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore IDE/editor files
+.vscode/
+.idea/
+
+# Ignore virtual environments
+venv/
+env/
+.venv/
+
+# Ignore database files (optional)
+instance/
+*.sqlite3
+
+# Ignore logs and debug files
+*.log
+
+# Ignore JetBrains IDE files
+/shelf/
+/workspace.xml
+/httpRequests/
+/dataSources/
+/dataSources.local.xml
