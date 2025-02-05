@@ -11,14 +11,18 @@ from flaskr.db import get_db
 bp=Blueprint('blog', __name__)
 @bp.route('/index')
 def index():
-    db = get_db()
-    posts = db.execute(
+    db = get_db()  # This gives you the connection
+    cur = db.cursor()  # Create a cursor from the connection
+    cur.execute(
         '''SELECT p.id, p.title, p.body, p.created, p.author_id, u.username 
            FROM post AS p 
            JOIN user1 AS u ON p.author_id = u.id 
            ORDER BY p.created DESC'''
-    ).fetchall()
-    return render_template('blog/index.html',posts=posts)
+    )
+    posts = cur.fetchall()  # Fetch all the results
+    cur.close()  # Close the cursor after use
+    return render_template('blog/index.html', posts=posts)
+
 
 @bp.route('/create',methods=('GET', 'POST'))
 @login_required
@@ -35,24 +39,29 @@ def create():
         if error is not None:
             flash(error)
         else:
-            db=get_db()
-            db.execute(
+            cur = db.cursor()  # Create a cursor
+            cur.execute(
                 'INSERT INTO post (title, body, author_id) VALUES (%s, %s, %s)',
-                (title,body,g.user['id'])
+                (title, body, g.user['id'])
             )
             db.commit()
+            cur.close()
             return redirect(url_for('blog.index'))
     return render_template('blog/create.html')
 
+
 def get_post(id, check_author=True):
     db = get_db()
-    post = db.execute(
+    cur = db.cursor()  # Create a cursor
+    cur.execute(
         '''SELECT p.id, p.title, p.body, p.created, p.author_id, u.username 
-        FROM post AS p 
-        JOIN user1 AS u ON p.author_id = u.id 
-        where p.id = %s''',
+           FROM post AS p 
+           JOIN user1 AS u ON p.author_id = u.id 
+           WHERE p.id = %s''',
         (id,)
-    ).fetchone()
+    )
+    post = cur.fetchone()  # Fetch a single result
+    cur.close()  # Close the cursor
 
     if post is None:
         abort(404, f"Post id {id} doesn't exist.")
@@ -64,10 +73,10 @@ def get_post(id, check_author=True):
 @bp.route('/<int:id>/update',methods=('GET', 'POST'))
 @login_required
 def update(id):
-    post= get_post(id)
+    post = get_post(id)
     if request.method == 'POST':
         title = request.form['title']
-        body=request.form['body']
+        body = request.form['body']
         error = None
 
         if not title:
@@ -76,19 +85,24 @@ def update(id):
         if error is not None:
             flash(error)
         else:
-            db=get_db()
-            db.execute(
-                '''UPDATE post SET title = %s, body = %s where id = %s''', (title, body, id)
+            db = get_db()
+            cur = db.cursor()  # Create a cursor
+            cur.execute(
+                '''UPDATE post SET title = %s, body = %s WHERE id = %s''',
+                (title, body, id)
             )
-            db.commit()
+            db.commit()  # Commit the changes
+            cur.close()  # Close the cursor
             return redirect(url_for('blog.index'))
     return render_template('blog/update.html', post=post)
 
 @bp.route('/<int:id>/delete',methods=('GET', 'POST'))
 @login_required
 def delete(id):
-    get_post(id)
-    db=get_db()
-    db.execute('''DELETE FROM post WHERE id=%s''',(id,))
-    db.commit()
+    post = get_post(id)
+    db = get_db()
+    cur = db.cursor()  # Create a cursor
+    cur.execute('''DELETE FROM post WHERE id = %s''', (id,))
+    db.commit()  # Commit the changes
+    cur.close()  # Close the cursor
     return redirect(url_for('blog.index'))
